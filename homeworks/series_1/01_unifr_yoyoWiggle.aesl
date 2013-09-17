@@ -26,12 +26,13 @@
 #										
 #	Robotics Project [SA 13] | University of Fribourg						
 # 																
-# 	Author:			Alexander Rüedlinger
-#	Group:			01
+# 	Author:		Alexander Rüedlinger
+#	Group:		01
+#	Matrikel-Nr:	08-129-710
 # 	Created:     	13.09.2013 									
 # 	Last modified: 	13.09.2013 	
 #	
-#	Description:	??
+#	Description:	This e-puck handles only forward, stop and backward events.
 #	
 ###
 
@@ -119,12 +120,13 @@ end</node>
 #										
 #	Robotics Project [SA 13] | University of Fribourg						
 # 																
-# 	Author:			Alexander Rüedlinger
-#	Group:			01
+# 	Author:		Alexander Rüedlinger
+#	Matrikel-Nr:	08-129-710
+#	Group:		01
 # 	Created:     	13.09.2013 	 									
 # 	Last modified: 	13.09.2013 	
 #	
-#	Description:	??
+#	Description:	This e-puck handles only forward, turn right, stop, turn left and backward events.
 #	
 ###
 
@@ -157,11 +159,12 @@ onevent turn_left
 #	Robotics Project [SA 13] | University of Fribourg						
 # 																
 # 	Author:		Alexander Rüedlinger
+#	Matrikel-Nr:	08-129-710
 #	Group:		01
 # 	Created:     	13.09.2013 									
 # 	Last modified: 	13.09.2013 	
 #	
-#	Description:	??
+#	Description:	This e-puck handles only forward, turn right and stop events.
 #	
 ###
 	
