@@ -32,3 +32,24 @@ Enjoy!
 
 - See https://aseba.wikidot.com/forum/t-683599
 - See https://aseba.wikidot.com/de:linuxinstall
+
+##Create a .tgz file
+
+For creating a tgz file use the tar command.
+
+Options:
+
+	- -c create a new archive
+	- -f use archive file
+	- -z gzip files
+
+Example:
+
+Create archive.tar from files foo and bar:
+           tar -cf archive.tar foo bar
+
+Create a .tgz file from files foo and bar:
+	tar -czf arhcive.tgz foo bar
+
+Note: The option -f must be last the option!
+So tar -cfz ... won't work!
