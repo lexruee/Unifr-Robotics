@@ -27,7 +27,7 @@
 #	Robotics Project [SA 13] | University of Fribourg						
 # 																
 # 	Author:			Alexander Rüedlinger
-#	Group:			???
+#	Group:			01
 # 	Created:     	13.09.2013 									
 # 	Last modified: 	13.09.2013 	
 #	
@@ -48,43 +48,6 @@ onevent forward
 onevent backward
 	speed.left = -args[0]
 	speed.right = -args[0]</node>
-
-
-<!--node e-puck 4-->
-<node nodeId="4" name="e-puck 4">###				
-#										
-#	Robotics Project [SA 13] | University of Fribourg						
-# 																
-# 	Author:			Alexander Rüedlinger
-#	Group:			???
-# 	Created:     	13.09.2013 	 									
-# 	Last modified: 	13.09.2013 	
-#	
-#	Description:	??
-#	
-###
-
-### EVENTS ###
-
-onevent stop
-	speed.left = 0
-	speed.right = 0
-	
-onevent forward
-	speed.left = args[0]
-	speed.right = args[0]
-	
-onevent backward
-	speed.left = -args[0]
-	speed.right = -args[0]
-	
-onevent turn_right
-	speed.right = args[0]
-	
-onevent turn_left
-	speed.left = args[0]
- 
-	</node>
 
 
 <!--node e-puck 1-->
@@ -151,13 +114,50 @@ for i in 1:REPETITION do
 end</node>
 
 
+<!--node e-puck 4-->
+<node nodeId="4" name="e-puck 4">###				
+#										
+#	Robotics Project [SA 13] | University of Fribourg						
+# 																
+# 	Author:			Alexander Rüedlinger
+#	Group:			01
+# 	Created:     	13.09.2013 	 									
+# 	Last modified: 	13.09.2013 	
+#	
+#	Description:	??
+#	
+###
+
+### EVENTS ###
+
+onevent stop
+	speed.left = 0
+	speed.right = 0
+	
+onevent forward
+	speed.left = args[0]
+	speed.right = args[0]
+	
+onevent backward
+	speed.left = -args[0]
+	speed.right = -args[0]
+	
+onevent turn_right
+	speed.right = args[0]
+	
+onevent turn_left
+	speed.left = args[0]
+ 
+	</node>
+
+
 <!--node e-puck 2-->
 <node nodeId="2" name="e-puck 2">###				
 #										
 #	Robotics Project [SA 13] | University of Fribourg						
 # 																
-# 	Author:			Alexander Rüedlinger
-#	Group:			???
+# 	Author:		Alexander Rüedlinger
+#	Group:		01
 # 	Created:     	13.09.2013 									
 # 	Last modified: 	13.09.2013 	
 #	
