@@ -47,12 +47,12 @@ Example:
 
 Create archive.tar from files foo and bar:
 ```
-           tar -cf archive.tar foo bar
+tar -cf archive.tar foo bar
 ```
 
 Create a .tgz file from files foo and bar:
 ```
-	tar -czf arhcive.tgz foo bar
+tar -czf arhcive.tgz foo bar
 ```
 Note: The option -f must be last the option!
 So tar -cfz ... won't work!
