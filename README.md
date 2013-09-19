@@ -1,6 +1,6 @@
 Robotics Project [AS2013]
 =========================
-This repo hosts homeworks of the robotics project at the University of Fribourg.
+This repo hosts homeworks of [the robotics project](http://diuf.unifr.ch/pai/pr1/) at the University of Fribourg.
 
 In this project the [Aseba environment](https://aseba.wikidot.com/en:start) is used to gain some experience in robotics.
 
