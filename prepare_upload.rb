@@ -2,7 +2,8 @@
 
 last_name = "Rueedlinger"
 series_number = ""
-shell_command = "tar -cvzf"
+tar_command = "tar -cvzf"
+gimli_command = "gimli"
 group_number = "01"
 lang = "en"
 file_ext = "tgz"
@@ -21,6 +22,9 @@ series_number << number # push the series number
 archive_name = upload_folder 
 archive_name << "#{group_number}_#{series_number}_#{last_name}_#{lang}.#{file_ext}"
 puts archive_name
+
+pwd = Dir.pwd << '/'
 puts "create tgz file: #{archive_name}"
-exec("#{shell_command} #{archive_name} #{series_dir}")
+exec("#{gimli_command} -file #{pwd}#{series_dir} -outputdir #{pwd}#{series_dir} && #{tar_command} #{archive_name} #{series_dir}")
+
 
