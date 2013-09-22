@@ -1,0 +1,45 @@
+\documentclass[12pt]{article}
+\usepackage{url,graphicx,tabularx,array,geometry}
+\usepackage[utf8]{inputenc}
+\setlength{\parskip}{1ex} %--skip lines between paragraphs
+\setlength{\parindent}{0pt} %--don't indent paragraphs
+
+%-- Commands for header
+\renewcommand{\title}[1]{\textbf{#1}\\}
+\renewcommand{\line}{\begin{tabularx}{\textwidth}{X>{\raggedleft}X}\hline\\\end{tabularx}\\[-0.5cm]}
+\newcommand{\leftright}[2]{\begin{tabularx}{\textwidth}{X>{\raggedleft}X}#1%
+& #2\\\end{tabularx}\\[-0.5cm]}
+
+%\linespread{2} %-- Uncomment for Double Space
+\begin{document}
+
+\title{Robotics Project  Autumn 2013}
+\line
+\leftright{\today}{Alexander Rüedlinger,08-129-710} %-- left and right positions in the header
+\section*{Series 1}
+\begin{enumerate}
+	\item Explain how the robot behavior works by analyzing the code.
+	\item What do you think the line emit forward speed stands for?
+	\item What represents speed in this line of code and how can it be reused?
+\end{enumerate}
+\subsection*{Qustion 1}
+First off, each e-puck implements a so called robot controller. Such a controller implements different event handlers which handle a specific type of event. So if a e-puck receives an event it will execute the corresponding event handler.
+
+The selection of the appropriate event handler is called dispatching and is performed by the aseba framework. Besides receiving and responding to events, e-pucks can also send events.  
+In this exercise the e-puck 1 acts as a control unit. It sends different events which are received by the other e-pucks. 
+\subsection*{Question 2}
+The emit statement specifies that a given robot should send an event of a certain type with zero or more arguments.
+So the statement "emit forward speed" can be understood as follows:
+\begin{itemize}
+	\item send a event of type forward
+	\item with argument speed
+\end{itemize}
+If the event handler is defined then such an event will trigger the execution of the corresponding block of code.
+\subsection*{Question 3}
+The expression speed represents an argument in the "emit forward speed". It can be reused in the corresponding event handler using the variable args[0].
+
+With the speed argument we can change the behaviour of the e-puck. In the exercises we've used the speed argument to change the speed and direction of the e-pucks.
+
+
+
+\end{document}

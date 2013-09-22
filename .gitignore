@@ -1,3 +1,6 @@
 upload/
 *.pdf
 *.tgz
+*.log
+*.aux
+*.gz
