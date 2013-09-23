@@ -5,7 +5,7 @@ series_number = ""
 tar_command = "tar -cvzf"
 gimli_command = "gimli"
 group_number = "01"
-lang = "en"
+lang = "e"
 file_ext = "tgz"
 upload_folder = "./upload/"
 
