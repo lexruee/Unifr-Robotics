@@ -1,0 +1,218 @@
+<!DOCTYPE aesl-source>
+<network>
+
+
+<!--list of global events-->
+<event size="0" name="push_info"/>
+<event size="1" name="check_energy_state"/>
+<event size="0" name="search_energy"/>
+<event size="0" name="need_energy"/>
+<event size="0" name="compDistance"/>
+
+
+<!--list of constants-->
+<constant value="-1" name="REVERSE_SPEED"/>
+<constant value="20" name="REPETITION"/>
+<constant value="1" name="COUNTER"/>
+<constant value="32000" name="MAX_LOOP"/>
+<constant value="9000" name="QUARTER_ROTATION"/>
+<constant value="3" name="START_EPUCK"/>
+<constant value="8" name="LIMIT"/>
+<constant value="4" name="END_EPUCK"/>
+<constant value="400" name="NORM_SPEED"/>
+<constant value="0" name="NULL_SPEED"/>
+<constant value="31000" name="FORWARD"/>
+<constant value="20000" name="CHECK_INTERVAL"/>
+
+
+<!--show keywords state-->
+<keywords flag="true"/>
+
+
+<!--node e-puck 2-->
+<node nodeId="2" name="e-puck 2">###		
+#													
+#	Robotics Project [SA 12] | University of Fribourg							
+# 																
+# 	Author:			Jan Kuehni         							
+# 	Created:     	22.10.2011 									
+# 	Last modified: 	1.10.2013
+# 	Refactored:		Alexander Rüedlinger									
+#	
+#	Description:	This epuck navigates to the feeders in order to charge up 
+#					and load energy into the pool. 
+#					See below for more details.	
+#	
+###
+
+### VARIABLE DEFINITION ###
+var d1
+var d6
+var i
+var j
+var energy_to_dispatch
+
+### SCRIPT LOGIC ###
+
+# rotate clockwise on the spot
+speed.left = NORM_SPEED
+speed.right = -NORM_SPEED
+
+# wait loop: wait for epuck to complete a quarter rotation at given speed	
+for i in 0:QUARTER_ROTATION do
+end 
+
+# move forward
+speed.left = NORM_SPEED
+speed.right = NORM_SPEED
+
+# wait loop: wait for epuck to clear distance to the energy feed
+for i in 0:FORWARD do 
+	emit compDistance
+end 
+
+# stop in front of the energy feed 
+speed.left = NULL_SPEED
+speed.right = NULL_SPEED
+
+# wait loop: wait while epuck reveices energy from feeder
+for i in 0:3 do
+	for j in 0:MAX_LOOP do
+	end 
+end
+
+# read current energy amount
+energy_to_dispatch = energy
+
+# send that amount to the pool
+call energy.send(energy_to_dispatch)
+
+# send info to e-puck 1 that pool can be used
+emit push_info
+
+# receive info from other e-pucks that pool is empty
+onevent need_energy
+	emit search_energy
+	
+
+onevent compDistance
+	d1 = prox[1]
+	d6 = prox[6]</node>
+
+
+<!--node e-puck 3-->
+<node nodeId="3" name="e-puck 3">###				
+#										
+#	Robotics Project [SA 12] | University of Fribourg						
+# 																
+# 	Author:			TODO: insert group members
+#	Group:			TODO: insert group number as indicated in group wiki
+# 	Created:     	18.08.2012 									
+# 	Last modified: 	TODO: insert last modification date
+#	
+#	Description:	TODO: complete description
+#	
+###
+
+### VARIABLE DEFINITION ###
+
+# TODO: create an empty variable that will store the amount of energy available in the pool
+
+### SCRIPT LOGIC ###
+
+# TODO: complete this events description 
+
+onevent check_energy_state
+	# TODO: check if e-puck 1 calls me or an another robot (hint: use args[0] and native variable called "id")
+	# TODO: check if I need energy (below 8 I need energy) (hint: use native variable called "energy")
+	# TODO: check the status of energy in the pool (hint: use native function energy.amount(...))
+	# TODO: take energy from the pool (take 8 if there are more than 20 energy points in the pool, otherwise take 4 (hint: use energy.receive(amount))
+	# TODO: if no energy is in the pool aks epuck 1 for help by emitting the event "need_energy"
+
+					
+# TODO: complete this events description
+			
+onevent search_energy
+	# TODO: describe with TODO: how to a robot might search for energy
+	emit push_info</node>
+
+
+<!--node e-puck 1-->
+<node nodeId="1" name="e-puck 1">###		
+#													
+#	Robotics Project [SA 12] | University of Fribourg							
+# 																
+# 	Author:			Jan Kuehni         							
+# 	Created:     	22.10.2011 									
+# 	Last modified: 	1.10.2013									
+#	Refactored:		Alexander Rüedlinger
+#
+#	Description:	As soon as the event push_info is recorded 
+#					this epuck periodically asks epucks 3 and 4 to perform an energy check.	
+#	
+###
+ 
+### VARIABLE DEFINITION ###
+
+var repStep
+var ePuckId
+var k
+
+### SCRIPT LOGIC ###
+
+# receive info that energy is pushed to pool
+onevent push_info
+	for repStep in 0:REPETITION do 
+		# ask epucks 3 and 4, turn by turn to perform an energy check
+		for ePuckId in START_EPUCK:END_EPUCK do
+			emit check_energy_state ePuckId
+			for k in 0:CHECK_INTERVAL do
+				# wait loop
+			end 
+		end
+	end
+
+
+	
+	
+	</node>
+
+
+<!--node e-puck 4-->
+<node nodeId="4" name="e-puck 4">###				
+#										
+#	Robotics Project [SA 12] | University of Fribourg						
+# 																
+# 	Author:			TODO: insert group members
+#	Group:			TODO: insert group number as indicated in group wiki
+# 	Created:     	18.08.2012 									
+# 	Last modified: 	TODO: insert last modification date
+#	
+#	Description:	TODO: complete description
+#	
+###
+
+### VARIABLE DEFINITION ###
+
+# TODO: create an empty variable that will store the amount of energy available in the pool
+
+### SCRIPT LOGIC ###
+
+# TODO: complete this events description 
+
+onevent check_energy_state
+	# TODO: check if e-puck 1 calls me or an another robot (hint: use args[0] and native variable called "id")
+	# TODO: check if I need energy (below 8 I need energy) (hint: use native variable called "energy")
+	# TODO: check the status of energy in the pool (hint: use native function energy.amount(...))
+	# TODO: take energy from the pool (take 8 if there are more than 20 energy points in the pool, otherwise take 4 (hint: use energy.receive(amount))
+	# TODO: if no energy is in the pool aks epuck 1 for help by emitting the event "need_energy"
+
+					
+# TODO: complete this events description
+			
+onevent search_energy
+	# TODO: describe with TODO: how to a robot might search for energy
+	emit push_info</node>
+
+
+</network>

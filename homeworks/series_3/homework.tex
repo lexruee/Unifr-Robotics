@@ -1,0 +1,43 @@
+\documentclass[12pt]{article}
+\usepackage{url,graphicx,tabularx,array,geometry}
+\usepackage[utf8]{inputenc}
+\usepackage{amsmath}
+\setlength{\parskip}{1ex} %--skip lines between paragraphs
+\setlength{\parindent}{0pt} %--don't indent paragraphs
+
+%-- Commands for header
+\renewcommand{\title}[1]{\textbf{#1}\\}
+\renewcommand{\line}{\begin{tabularx}{\textwidth}{X>{\raggedleft}X}\hline\\\end{tabularx}\\[-0.5cm]}
+\newcommand{\leftright}[2]{\begin{tabularx}{\textwidth}{X>{\raggedleft}X}#1%
+& #2\\\end{tabularx}\\[-0.5cm]}
+
+%\linespread{2} %-- Uncomment for Double Space
+\begin{document}
+
+\title{Robotics Project  Autumn 2013}
+\line
+\leftright{\today}{Alexander Rüedlinger, 08-129-710, Group 01} %-- left and right positions in the header
+\section*{Series 3}
+\paragraph{a)} Done ;-)..
+
+\paragraph{b)}
+The constant value QUATER\_ROTATION = 9000 is used in a wait loop to rotate epuck 2 clockwise on the spot with NORM\_SPEED = 400.
+
+I guess the important thing to highlight here is the ratio:
+\begin{equation}
+\frac{9000}{400} = 22.5
+\end{equation}
+We can achieve the same rotation using only the left speed variable, but in this case we must set QUATER\_ROTATION = 18000.
+
+\paragraph{c)} In the exercise working file the distance is hardcoded. The distance is defined as the number of microseconds. A epuck has a built-in  dsPIC cpu (MIPS) running at  60Mhz. 60 millions cycles per second and 15 millions instructions per seconds.
+
+When we compute the ratio between cpu clock speed and mips we get:
+\begin{equation}
+\frac{60Mhz}{15Mips} = 4 \text{ instructions per seconds} = 4000 \text{ instructions per } \mu s
+\end{equation}
+This computation seems to be correctly because all events are delayed by 4000 microseconds.
+
+\paragraph{d)} Epuck 1 informs epuck 2 by sending an external even push\_info.
+
+\paragraph{d)} Nothing to do. Works out of the box ;-).
+\end{document}
