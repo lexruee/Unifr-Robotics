@@ -4,6 +4,7 @@
 \usepackage{amsmath}
 \setlength{\parskip}{1ex} %--skip lines between paragraphs
 \setlength{\parindent}{0pt} %--don't indent paragraphs
+\usepackage{listing}
 
 %-- Commands for header
 \renewcommand{\title}[1]{\textbf{#1}\\}
@@ -21,7 +22,7 @@
 \paragraph{a)} Done ;-)..
 
 \paragraph{b)}
-The constant value QUATER\_ROTATION = 9000 is used in a wait loop to rotate epuck 2 clockwise on the spot with NORM\_SPEED = 400.
+The constant value QUATER\_ROTATION = 9000 is used in a waiting / busy loop to rotate epuck 2 clockwise on the spot with NORM\_SPEED = 400. So the value QUATER\_ROTATION determines how long it takes for epuck 2 to make a quater rotation.
 
 I guess the important thing to highlight here is the ratio:
 \begin{equation}
@@ -29,15 +30,21 @@ I guess the important thing to highlight here is the ratio:
 \end{equation}
 We can achieve the same rotation using only the left speed variable, but in this case we must set QUATER\_ROTATION = 18000.
 
-\paragraph{c)} In the exercise working file the distance is hardcoded. The distance is defined as the number of microseconds. A epuck has a built-in  dsPIC cpu (MIPS) running at  60Mhz. 60 millions cycles per second and 15 millions instructions per seconds.
+\paragraph{c)} In the exercise file the distance is hardcoded. It's defined in the constant FORWARD which is set to 31 000. 
 
-When we compute the ratio between cpu clock speed and mips we get:
-\begin{equation}
-\frac{60Mhz}{15Mips} = 4 \text{ instructions per seconds} = 4000 \text{ instructions per } \mu s
-\end{equation}
-This computation seems to be correctly because all events are delayed by 4000 microseconds.
+Instead to hardcode the distance we could use distance and color sensors. The epuck could detect the green pillar in the neighbourhood using color sensors and by a 360 degree rotation. If the green pillar is found the epuck stops and drives straightforward. While the epuck moves forward it computes the remaining distance. If a critical distance value is exceeded it stops.
 
-\paragraph{d)} Epuck 1 informs epuck 2 by sending an external even push\_info.
+\paragraph{d)} Epuck 2 informs epuck 1 by sending an external event called push\_info via emit push\_info. The epuck 1 listens to the event push\_info via onevent push\_info.
 
-\paragraph{d)} Nothing to do. Works out of the box ;-).
+\paragraph{e)} Nothing to do. Works out of the box ;-).
+
+\paragraph{f)} See aseba file.
+
+\paragraph{g)} In order to find the green pillar in an unknown environment, we need a very intelligent exploration algorithm. This is task is similar to an ant that is looking for food.
+
+A simple approach might be to transform this problem into a graph problem.
+We could split the environment into squared fields. Each field consists of four vertices which are adjacent to vertices of neighboured squared fields.
+
+In this case the problem consists of visiting each vertex and testing if a vertex is a green pillar. As an algorithm we could apply a breadth first search.
+
 \end{document}

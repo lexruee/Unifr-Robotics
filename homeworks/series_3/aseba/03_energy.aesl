@@ -7,7 +7,6 @@
 <event size="1" name="check_energy_state"/>
 <event size="0" name="search_energy"/>
 <event size="0" name="need_energy"/>
-<event size="0" name="compDistance"/>
 
 
 <!--list of constants-->
@@ -17,12 +16,17 @@
 <constant value="32000" name="MAX_LOOP"/>
 <constant value="9000" name="QUARTER_ROTATION"/>
 <constant value="3" name="START_EPUCK"/>
-<constant value="8" name="LIMIT"/>
 <constant value="4" name="END_EPUCK"/>
 <constant value="400" name="NORM_SPEED"/>
 <constant value="0" name="NULL_SPEED"/>
+<constant value="8" name="LIMIT"/>
 <constant value="31000" name="FORWARD"/>
 <constant value="20000" name="CHECK_INTERVAL"/>
+<constant value="8" name="GREEDY"/>
+<constant value="4" name="HUNGRY"/>
+<constant value="20" name="ENERGY_LEVEL"/>
+<constant value="8" name="MIN_ENERGY"/>
+<constant value="0" name="ZERO"/>
 
 
 <!--show keywords state-->
@@ -32,22 +36,18 @@
 <!--node e-puck 2-->
 <node nodeId="2" name="e-puck 2">###		
 #													
-#	Robotics Project [SA 12] | University of Fribourg							
-# 																
+#	Robotics Project [SA 13] | University of Fribourg							
+# 															
 # 	Author:			Jan Kuehni         							
 # 	Created:     	22.10.2011 									
-# 	Last modified: 	1.10.2013
-# 	Refactored:		Alexander Rüedlinger									
+# 	Last modified: 	06.10.2013									
 #	
-#	Description:	This epuck navigates to the feeders in order to charge up 
-#					and load energy into the pool. 
-#					See below for more details.	
+#	Description:	epuck navigates to the feeders in order to charge up and load energy into the pool. See below for more details.	
 #	
 ###
 
 ### VARIABLE DEFINITION ###
-var d1
-var d6
+
 var i
 var j
 var energy_to_dispatch
@@ -58,7 +58,7 @@ var energy_to_dispatch
 speed.left = NORM_SPEED
 speed.right = -NORM_SPEED
 
-# wait loop: wait for epuck to complete a quarter rotation at given speed	
+# wait for epuck to complete a quarter rotation at given speed	
 for i in 0:QUARTER_ROTATION do
 end 
 
@@ -66,16 +66,15 @@ end
 speed.left = NORM_SPEED
 speed.right = NORM_SPEED
 
-# wait loop: wait for epuck to clear distance to the energy feed
+# wait for epuck to clear distance to the enrgy feed
 for i in 0:FORWARD do 
-	emit compDistance
 end 
 
 # stop in front of the energy feed 
 speed.left = NULL_SPEED
 speed.right = NULL_SPEED
 
-# wait loop: wait while epuck reveices energy from feeder
+# wait while epuck reveices energy from feeder
 for i in 0:3 do
 	for j in 0:MAX_LOOP do
 	end 
@@ -92,80 +91,164 @@ emit push_info
 
 # receive info from other e-pucks that pool is empty
 onevent need_energy
-	emit search_energy
-	
+	#emit search_energy
+	call energy.send(energy_to_dispatch)
 
-onevent compDistance
-	d1 = prox[1]
-	d6 = prox[6]</node>
+</node>
 
 
 <!--node e-puck 3-->
 <node nodeId="3" name="e-puck 3">###				
 #										
-#	Robotics Project [SA 12] | University of Fribourg						
+#	Robotics Project [SA 13] | University of Fribourg						
 # 																
-# 	Author:			TODO: insert group members
-#	Group:			TODO: insert group number as indicated in group wiki
+# 	Author:			Alexander Rüedlinger, Christian Locher
+#	Group:			01
 # 	Created:     	18.08.2012 									
-# 	Last modified: 	TODO: insert last modification date
+# 	Last modified: 	06.10.2013
 #	
-#	Description:	TODO: complete description
+#	Description:		This epuck does exactly the same thing as the 	#					epuck 4. It consumes energy from  the energy 
+#					pool. It has three modes of operation:
+#						- GREEDY	
+#						- HUNGRY
+# 						- HELP
+#					If enough energy is availaible the epuck 
+# 					consumes 8 ep from the pool (GREEDY).
+#					If the energy pool level is below 20 ep
+#					the epuck consumes 4 ep (hungry).
+#					If the energy pool is empty or can't satisfy
+#					the ep requests of 4 ep, the epuck sends a 
+#					help message need_energy to epuck2 (HELP).
 #	
 ###
 
 ### VARIABLE DEFINITION ###
-
-# TODO: create an empty variable that will store the amount of energy available in the pool
+var energyPool = 0
 
 ### SCRIPT LOGIC ###
 
-# TODO: complete this events description 
-
+# This event listener handles emitted events of type
+# check_energy_state.
+# The event contains epuck id parameter it. The epuck with the 
+# corresponding id should respond to the received message.
 onevent check_energy_state
-	# TODO: check if e-puck 1 calls me or an another robot (hint: use args[0] and native variable called "id")
-	# TODO: check if I need energy (below 8 I need energy) (hint: use native variable called "energy")
-	# TODO: check the status of energy in the pool (hint: use native function energy.amount(...))
-	# TODO: take energy from the pool (take 8 if there are more than 20 energy points in the pool, otherwise take 4 (hint: use energy.receive(amount))
-	# TODO: if no energy is in the pool aks epuck 1 for help by emitting the event "need_energy"
-
+	# filter messages with incorrect epuck id and
+	# respond only to messagse with correct id.
+	if args[0]==id then
+		call energy.amount(energyPool) #store the amount
+		if  energy &lt; MIN_ENERGY then #is below min energy
+			# if so then try to get some energy
+			if energyPool > ENERGY_LEVEL then #be greedy
+				call energy.receive(GREEDY)
+			elseif energyPool >= HUNGRY then #be normal
+				call energy.receive(HUNGRY)
+			end
+			if energyPool==ZERO then #help!
+				emit need_energy
+			end
+		end
+	end
 					
-# TODO: complete this events description
-			
+# This event listener handles emmited events of type search_energy.
+# The epuck should search for energy if this message is received.
 onevent search_energy
-	# TODO: describe with TODO: how to a robot might search for energy
+	#HOW:
+	# Each epuck could search for a green pillar in his neighbourhood 	# by using the installed color sensors.
+	# If one epuck has found a green pillar it could send a message 		# containing the location of the energy source to the other 			# epucks. The idea is a kind of distributed search where each
+	# epuck searches in his area.
+	emit push_info</node>
+
+
+<!--node e-puck 4-->
+<node nodeId="4" name="e-puck 4">###				
+#										
+#	Robotics Project [SA 12] | University of Fribourg						
+# 																
+# 	Author:			Alexander Rüedlinger, Christian Locher
+#	Group:			01
+# 	Created:     	18.08.2012 									
+# 	Last modified: 	06.10.2013
+#	
+#	Description:		This epuck does exactly the same thing as the 	#					epuck 3. It consumes energy from  the energy 
+#					pool. It has three modes of operation:
+#						- GREEDY	
+#						- HUNGRY
+# 						- HELP
+#					If enough energy is availaible the epuck 
+# 					consumes 8 ep from the pool (GREEDY).
+#					If the energy pool level is below 20 ep
+#					the epuck consumes 4 ep (hungry).
+#					If the energy pool is empty or can't satisfy
+#					the ep requests of 4 ep, the epuck sends a 
+#					help message need_energy to epuck2 (HELP).
+#	
+###
+
+### VARIABLE DEFINITION ###
+var energyPool = 0
+
+### SCRIPT LOGIC ###
+
+# This event listener handles emitted events of type
+# check_energy_state.
+# The event contains epuck id parameter it. The epuck with the 
+# corresponding id should respond to the received message.
+onevent check_energy_state
+	# filter messages with incorrect epuck id and
+	# respond only to messagse with correct id.
+	if args[0]==id then
+		call energy.amount(energyPool) #store the amount
+		if  energy &lt; MIN_ENERGY then #is below min energy
+			# if so then try to get some energy
+			if energyPool > ENERGY_LEVEL then #be greedy
+				call energy.receive(GREEDY)
+			elseif energyPool >= HUNGRY then #be normal
+				call energy.receive(HUNGRY)
+			end
+			if energyPool==ZERO then #help!
+				emit need_energy
+			end
+		end
+	end
+					
+
+# This event listener handles emmited events of type search_energy.
+# The epuck should search for energy if this message is received.
+onevent search_energy
+	#HOW:
+	# Each epuck could search for a green pillar in his neighbourhood 	# by using the installed color sensors.
+	# If one epuck has found a green pillar it could send a message 		# containing the location of the energy source to the other 			# epucks. The idea is a kind of distributed search where each
+	# epuck searches in his area.
 	emit push_info</node>
 
 
 <!--node e-puck 1-->
 <node nodeId="1" name="e-puck 1">###		
 #													
-#	Robotics Project [SA 12] | University of Fribourg							
+#	Robotics Project [SA 13] | University of Fribourg							
 # 																
 # 	Author:			Jan Kuehni         							
 # 	Created:     	22.10.2011 									
-# 	Last modified: 	1.10.2013									
-#	Refactored:		Alexander Rüedlinger
-#
-#	Description:	As soon as the event push_info is recorded 
-#					this epuck periodically asks epucks 3 and 4 to perform an energy check.	
+# 	Last modified: 	06.10.2013									
+#	
+#	Description:	As soon as the event push_info is recorded the Epuck periodically asks epucks 3 and 4 to perform an energy check		
 #	
 ###
  
 ### VARIABLE DEFINITION ###
 
-var repStep
-var ePuckId
+var i
+var j
 var k
 
 ### SCRIPT LOGIC ###
 
 # receive info that energy is pushed to pool
 onevent push_info
-	for repStep in 0:REPETITION do 
-		# ask epucks 3 and 4, turn by turn to perform an energy check
-		for ePuckId in START_EPUCK:END_EPUCK do
-			emit check_energy_state ePuckId
+	for i in 0:REPETITION do 
+		# aks epucks 3 and 4, turn by turn to perform an energy check
+		for j in START_EPUCK:END_EPUCK do
+			emit check_energy_state j
 			for k in 0:CHECK_INTERVAL do
 				# wait loop
 			end 
@@ -176,43 +259,6 @@ onevent push_info
 	
 	
 	</node>
-
-
-<!--node e-puck 4-->
-<node nodeId="4" name="e-puck 4">###				
-#										
-#	Robotics Project [SA 12] | University of Fribourg						
-# 																
-# 	Author:			TODO: insert group members
-#	Group:			TODO: insert group number as indicated in group wiki
-# 	Created:     	18.08.2012 									
-# 	Last modified: 	TODO: insert last modification date
-#	
-#	Description:	TODO: complete description
-#	
-###
-
-### VARIABLE DEFINITION ###
-
-# TODO: create an empty variable that will store the amount of energy available in the pool
-
-### SCRIPT LOGIC ###
-
-# TODO: complete this events description 
-
-onevent check_energy_state
-	# TODO: check if e-puck 1 calls me or an another robot (hint: use args[0] and native variable called "id")
-	# TODO: check if I need energy (below 8 I need energy) (hint: use native variable called "energy")
-	# TODO: check the status of energy in the pool (hint: use native function energy.amount(...))
-	# TODO: take energy from the pool (take 8 if there are more than 20 energy points in the pool, otherwise take 4 (hint: use energy.receive(amount))
-	# TODO: if no energy is in the pool aks epuck 1 for help by emitting the event "need_energy"
-
-					
-# TODO: complete this events description
-			
-onevent search_energy
-	# TODO: describe with TODO: how to a robot might search for energy
-	emit push_info</node>
 
 
 </network>
