@@ -1,0 +1,133 @@
+<!DOCTYPE aesl-source>
+<network>
+
+
+<!--list of global events-->
+
+
+<!--list of constants-->
+<constant value="1500" name="MAX_PROX"/>
+<constant value="400" name="MAX_SPEED"/>
+<constant value="500" name="MAX_PROX_TURN"/>
+<constant value="18000" name="HALF_ROTATION"/>
+<constant value="0" name="EXPLORER"/>
+<constant value="1" name="LOVER"/>
+<constant value="0" name="FALSE"/>
+<constant value="1" name="TRUE"/>
+<constant value="500" name="TIME_LIMIT"/>
+
+
+<!--show keywords state-->
+<keywords flag="true"/>
+
+
+<!--node e-puck 1-->
+<node nodeId="1" name="e-puck 1">###				
+#										
+#	Robotics Project [SA 12] | University of Fribourg						
+# 																
+# 	Author:			Alexander Rüedlinger, Christian Locher
+#	Group:			Alexander Rüedlinger, Christian Locher
+# 	Created:     	18.08.2012 									
+# 	Last modified: 	15.10.2012
+#	
+#	Description:	 E-puck has two states. Explorer and lover. It changes to the lover state if a blue obstacle is detected.
+#	
+###
+
+### VARIABLES ###
+var timer = 0
+
+var proxRight = 0
+var proxLeft = 0
+var normalizedSpeed = 0
+
+var state = EXPLORER
+var foundBlue = FALSE
+
+### CODE LOGIC ###
+speed.left = MAX_SPEED
+speed.right = MAX_SPEED
+
+# check time
+sub timer
+	if timer > TIME_LIMIT then
+		state = 1 - state
+		timer = 0
+	else
+		timer = timer + 1
+	end
+
+# what to do if in state EXPLORER
+sub explorer
+	# compute weighted prox values		
+	proxRight = (4*prox[0] + 2*prox[1] + prox[2])/7
+	proxLeft = (4*prox[7] + 2*prox[6] + prox[5])/7
+
+	# check which side of the e-puck is closer to an obstacle
+	if proxRight > proxLeft then
+		#compute normalized speed value according to IR sensor value
+		call math.muldiv(normalizedSpeed, MAX_SPEED, proxRight, MAX_PROX)
+	else
+		# compute normalized speed value according to IR sensor value
+		call math.muldiv(normalizedSpeed, MAX_SPEED, proxLeft, MAX_PROX)
+		
+		# invert value of normalizedSpeed
+		normalizedSpeed = -normalizedSpeed
+	end
+	
+	# adjust speed values to turn away from obstacle
+	speed.right = MAX_SPEED + normalizedSpeed
+	speed.left = MAX_SPEED - normalizedSpeed
+
+# what to do if in state LOVER
+sub lover
+	# compute weighted prox values		
+	proxRight = (prox[0] + 2*prox[1] + 4*prox[2])/7
+	proxLeft = (prox[7] + 2*prox[6] + 4*prox[5])/7
+
+	# check which side of the e-puck is closer to an obstacle
+	if proxRight > proxLeft then
+		#compute normalized speed value according to IR sensor value
+		call math.muldiv(normalizedSpeed, MAX_SPEED, proxRight, MAX_PROX)
+		
+		# adjust speed values to turn to obstacle
+	   	speed.right = normalizedSpeed
+	   	speed.left = MAX_SPEED - normalizedSpeed
+	else
+		# compute normalized speed value according to IR sensor value
+		call math.muldiv(normalizedSpeed, MAX_SPEED, proxLeft, MAX_PROX)
+		
+		# adjust speed values to turn to obstacle
+		speed.right = MAX_SPEED - normalizedSpeed
+		speed.left = normalizedSpeed
+	end
+	
+	callsub timer
+
+onevent ir_sensors
+	if state == EXPLORER then
+		callsub explorer
+	elseif state == LOVER then
+		callsub lover
+	end
+	
+onevent camera
+	if  cam.blue[29] == 61 then
+		state = LOVER
+	end</node>
+
+
+<!--node e-puck 2-->
+<node nodeId="2" name="e-puck 2"></node>
+
+
+<!--node e-puck 3-->
+<node nodeId="3" name="e-puck 3"></node>
+
+
+<!--node e-puck 4-->
+<node nodeId="4" name="e-puck 4"></node>
+
+
+</network>
