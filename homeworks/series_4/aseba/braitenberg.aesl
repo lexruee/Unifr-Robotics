@@ -1,0 +1,305 @@
+<!DOCTYPE aesl-source>
+<network>
+
+
+<!--list of global events-->
+
+
+<!--list of constants-->
+<constant value="1500" name="MAX_PROX"/>
+<constant value="400" name="MAX_SPEED"/>
+<constant value="1" name="STATE_FORWARD"/>
+<constant value="2" name="STATE_STOP"/>
+<constant value="0" name="STATE_INIT"/>
+<constant value="1" name="TRUE"/>
+<constant value="0" name="FALSE"/>
+<constant value="0" name="ZERO"/>
+<constant value="3" name="STATE_TURN"/>
+<constant value="4" name="STATE_WALL"/>
+<constant value="5" name="STATE_END"/>
+
+
+<!--show keywords state-->
+<keywords flag="true"/>
+
+
+<!--node e-puck 1-->
+<node nodeId="1" name="e-puck 1">###				
+#										
+#	Robotics Project [SA 12] | University of Fribourg						
+# 																
+# 	Author:			TODO: insert group members
+#	Group:			TODO: insert group number as indicated in group wiki
+# 	Created:     	18.08.2012 									
+# 	Last modified: 	TODO: insert last modification date
+#	
+#	Description:	TODO: complete description
+#	
+###
+
+# TODO: implement the basic love behavior
+
+### VARIABLES ###
+
+var frontProx
+var normalizedSpeed
+
+### CODE LOGIC ###
+
+onevent ir_sensors
+	# TODO: choose which prox values to use and how to combine them (average, addition, etc.)
+	# TODO: normalize speed with current porx value, MAX_SPEED amd MAX_PROX, use native function math.muldiv()
+	# TODO: change speed (NORM_SPEED - normalized_speed for both wheels)
+</node>
+
+
+<!--node e-puck 2-->
+<node nodeId="2" name="e-puck 2">###				
+#										
+#	Robotics Project [SA 13] | University of Fribourg						
+# 																
+# 	Author:			Alexander Rüedlinger, Christian Locher
+#	Group:			Group 01
+# 	Created:     	18.08.2012 									
+# 	Last modified: 	
+#	
+#	Description:	 This epuck implements the Explorer behaviour.
+#	
+###
+
+
+### VARIABLES ###
+
+var proxLeft
+var proxRight
+var normalizedSpeed
+var i
+var ir[8]
+var irSensor
+
+### PROCEDURES ###
+sub calibrate
+	for i in 0:7 do
+		if prox[i] > 0 then
+			ir[i] = prox[i]
+		else
+			ir[i] = 0
+		end
+	end
+
+sub selectFrontSensor
+	if ir[0] > ir[1] then
+		irSensor = ir[0]
+	else
+		irSensor = ir[1]
+	end	
+	
+sub selectBackSensor
+	if ir[7] > ir[6] then
+		irSensor = ir[7]
+	else
+		irSensor = ir[6]
+	end	
+
+### CODE LOGIC ###
+speed.left = 400
+speed.right = 400
+
+onevent ir_sensors
+	callsub calibrate
+	
+	if ir[0]+ir[1] > ir[6]+ir[7] then
+		callsub selectFrontSensor
+		call math.muldiv(normalizedSpeed, MAX_SPEED,irSensor,MAX_PROX)
+	else
+		callsub selectBackSensor
+		call math.muldiv(normalizedSpeed, MAX_SPEED, irSensor,MAX_PROX)
+		normalizedSpeed = -normalizedSpeed
+	end
+	
+	speed.left = MAX_SPEED - normalizedSpeed
+	speed.right = MAX_SPEED + normalizedSpeed
+	
+	
+	
+	</node>
+
+
+<!--node e-puck 3-->
+<node nodeId="3" name="e-puck 3">###				
+#										
+#	Robotics Project [SA 13] | University of Fribourg						
+# 																
+# 	Author:			Alexander Rüedlinger, Christian Locher
+#	Group:			Group 01
+# 	Created:     	18.08.2012 									
+# 	Last modified: 	09.10.2013
+#	
+#	Description:		This epuck-3 implements the basic love
+#					behaviour. This implementation uses a simple
+#                   state machine.
+#	
+###
+
+### VARIABLES ###
+var proxLeft
+var proxRight
+var normalizedSpeed
+var frontProx
+var STATE
+
+### PROCEDURES ###
+sub calibrate		
+	proxLeft = prox[7]
+	proxRight = prox[0]
+	if proxLeft &lt; 0 then
+		proxLeft = 0
+	end
+	if proxRight &lt; 0 then
+		proxRight = 0
+	end
+	frontProx = (proxLeft + proxRight) / 2
+	call math.muldiv(normalizedSpeed,MAX_SPEED,frontProx,MAX_PROX)
+	
+sub moveForwardOrStop
+	if ZERO > MAX_SPEED - normalizedSpeed then
+		STATE = STATE_STOP
+	else
+		speed.left =  MAX_SPEED - normalizedSpeed
+		speed.right =  MAX_SPEED - normalizedSpeed
+		STATE = STATE_FORWARD
+	end
+
+		
+### CODE LOGIC ###
+STATE = STATE_INIT #set initial state
+
+onevent ir_sensors
+	callsub calibrate
+	if STATE == STATE_INIT then
+		if  proxLeft &lt; MAX_PROX and proxRight &lt; MAX_PROX then
+			STATE = STATE_FORWARD
+			speed.left = MAX_SPEED
+			speed.right = MAX_SPEED
+		else
+			STATE = STATE_STOP
+		end
+	end
+
+	if STATE == STATE_STOP then
+		speed.left = ZERO
+		speed.right = ZERO
+	end
+	
+	if  STATE == STATE_FORWARD then
+		callsub moveForwardOrStop #this function makes
+		# a transition to the state forward or stop.
+	end
+	</node>
+
+
+<!--node e-puck 4-->
+<node nodeId="4" name="e-puck 4">###				
+#										
+#	Robotics Project [SA 12] | University of Fribourg						
+# 																
+# 	Author:			Alexander Rüedlinger, Christian Locher
+#	Group:			Group 01
+# 	Created:     	18.08.2012 									
+# 	Last modified: 	
+#	
+#	Description:		This e-puck 4 implements the adavanced 
+#					love behaviour. This implementation uses a
+#					simple state machine.
+#	
+###
+
+### VARIABLES ###
+var proxLeft
+var proxRight
+var normalizedSpeed
+var frontProx
+var STATE
+var MAX_SIDEPROX = 2200
+
+### PROCEDURES ###
+sub calibrate		
+	proxLeft = prox[7]
+	proxRight = prox[0]
+	if proxLeft &lt; 0 then
+		proxLeft = 0
+	end
+	if proxRight &lt; 0 then
+		proxRight = 0
+	end
+	frontProx = (proxLeft + proxRight) / 2
+	call math.muldiv(normalizedSpeed,MAX_SPEED,frontProx,MAX_PROX)
+	
+sub stop
+	speed.left = ZERO
+	speed.right = ZERO
+	
+sub turn
+	speed.left = -MAX_SPEED/2
+	speed.right = MAX_SPEED/2
+	
+sub moveForward
+	speed.left = MAX_SPEED
+	speed.right = MAX_SPEED
+		
+### CODE LOGIC ###
+STATE = STATE_INIT # set intial state
+
+onevent ir_sensors
+	callsub calibrate
+	
+	if STATE == STATE_INIT then
+		if  proxLeft &lt; MAX_PROX and proxRight &lt; MAX_PROX then
+			STATE = STATE_FORWARD
+			callsub moveForward
+		else
+			STATE = STATE_STOP
+		end
+	end
+
+	if STATE == STATE_STOP then
+		callsub stop
+		STATE = STATE_TURN
+	end
+	
+	if  STATE == STATE_FORWARD then
+		if ZERO > MAX_SPEED - normalizedSpeed then
+			STATE = STATE_STOP
+		else
+			speed.left =  MAX_SPEED - normalizedSpeed
+			speed.right =  MAX_SPEED - normalizedSpeed
+			STATE = STATE_FORWARD
+		end
+	end
+	
+	if  STATE == STATE_WALL then
+		if ZERO > MAX_SPEED - normalizedSpeed then
+			STATE = STATE_END
+		else
+			speed.left =  MAX_SPEED - normalizedSpeed
+			speed.right =  MAX_SPEED - normalizedSpeed
+			STATE = STATE_FORWARD
+		end
+	end
+	
+	if STATE == STATE_TURN then
+		callsub turn
+		if prox[2] > MAX_SIDEPROX then
+			callsub stop
+			STATE = STATE_WALL
+		end
+	end
+	
+	if STATE == STATE_END then
+		callsub stop
+	end
+	
+# In the end it was a stupid idea to use a state machine model...</node>
+
+
+</network>
