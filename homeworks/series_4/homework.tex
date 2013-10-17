@@ -1,0 +1,38 @@
+\documentclass[12pt]{article}
+\usepackage{url,graphicx,tabularx,array,geometry}
+\usepackage[utf8]{inputenc}
+\usepackage{amsmath}
+\setlength{\parskip}{1ex} %--skip lines between paragraphs
+\setlength{\parindent}{0pt} %--don't indent paragraphs
+\usepackage{listings}
+
+%-- Commands for header
+\renewcommand{\title}[1]{\textbf{#1}\\}
+\renewcommand{\line}{\begin{tabularx}{\textwidth}{X>{\raggedleft}X}\hline\\\end{tabularx}\\[-0.5cm]}
+\newcommand{\leftright}[2]{\begin{tabularx}{\textwidth}{X>{\raggedleft}X}#1%
+& #2\\\end{tabularx}\\[-0.5cm]}
+
+%\linespread{2} %-- Uncomment for Double Space
+\begin{document}
+
+\title{Robotics Project  Autumn 2013}
+\line
+\leftright{\today}{Alexander Rüedlinger, 08-129-710, Group 01} %-- left and right positions in the header
+\section*{Series 4}
+
+\paragraph{a)}
+The advantage of the \emph{Basic love behaviour} is that its simple, effective and easy to implement.
+But the behaviour might be only useful as a subroutine or as building block in a more complex behaviour where collision avoidance is needed. So this behaviour by itself is less useful.
+
+The \emph{Advanced love behaviour} is based on the \emph{Basic love behaviour}. The advantage is that the robot stops in front of the obstacle and follows along its side. This behaviour as as subroutine allows to program more intelligent robots. This behaviour can be really useful to implement robots that follows walls.
+
+The \emph{Explorer behaviour} avoids collisions with obstacles. A advantage of this behaviour is that the robot is always moving. So if the encountered obstacle is to close a collision can't be avoided. An advantage of this behaviour is the ability to explore an unknown environment.
+
+In a \emph{open field} I would definitely use the Explorer behaviour. To traverse a \emph{tight labyrinth} the advanced behaviour seems to an ideal choice.
+
+On a \emph{plane full of large rocks} a combined behaviour might be the best solution. Because large rocks should be avoided, so the basic love behaviour and the advanced love behaviour are good choices. But to explore the plane we need the explorer behaviour. Therefore I would consider a mix of all three behaviours.
+
+\paragraph{b)}
+The epuck that implements the explorer behaviour avoids collisions with the advanced love epuck. The love epuck in contrast just moves forwards until it encounters an obstacle. In this case it rotates 90 degree counter clockwise and tries to follow the encountered obstacle along its side. So if the advanced love epuck encounters the the front of the explorer epuck the following happens. The explorer turns away and the love epuck rotates a few degrees and moves again forwards to the next obstacle.
+
+\end{document}
