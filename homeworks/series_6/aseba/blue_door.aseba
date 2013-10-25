@@ -1,0 +1,940 @@
+<!DOCTYPE aesl-source>
+<network>
+
+
+<!--list of global events-->
+<event size="1" name="timerEvent"/>
+<event size="1" name="masterAlive"/>
+<event size="0" name="mySlavesFindTheDoor"/>
+
+
+<!--list of constants-->
+<constant value="400" name="MAX_SPEED"/>
+<constant value="1500" name="MAX_PROX"/>
+<constant value="500" name="TIMER_LIMIT"/>
+<constant value="32767" name="MAX_RAND"/>
+<constant value="1" name="STATE_ADVLOVER"/>
+<constant value="0" name="STATE_EXPLORER"/>
+<constant value="10" name="EPS"/>
+<constant value="1" name="TRUE"/>
+<constant value="0" name="FALSE"/>
+<constant value="3" name="STATE_FOUND_RED"/>
+<constant value="4" name="STATE_FREE"/>
+<constant value="2" name="STATE_BALOVER"/>
+<constant value="5" name="STATE_RED_FRONT"/>
+<constant value="6" name="STATE_MASTER"/>
+<constant value="0" name="PHASE_BECOME_MASTER"/>
+<constant value="1" name="PHASE_FIND_DOOR"/>
+<constant value="7" name="STATE_FIND_DOOR"/>
+<constant value="8" name="STATE_CONTROL"/>
+
+
+<!--show keywords state-->
+<keywords flag="true"/>
+
+
+<!--node e-puck 1-->
+<node nodeId="1" name="e-puck 1">var proxLeft
+var proxRight
+var normalizedSpeed
+var timerValue = 0
+var rand
+
+var STATE = STATE_FREE
+var PHASE = PHASE_BECOME_MASTER
+
+var foundColor = FALSE
+var redInFront = FALSE
+var i = 0
+var frontProx = 0
+var frontBlocked = FALSE
+var RED[3] = [77,20,15]#RGB
+var BLUE[3] = [0,38,61]
+var useRGBColor[3]
+
+var ImTheMaster = FALSE
+
+var random = 0
+var backoff
+
+sub rand
+	call math.rand(random)
+	if random &lt; 0 then
+		random *= -1
+	end
+	call math.muldiv(random,100,random,MAX_RAND)
+	
+
+sub stop
+	speed.left = 0
+	speed.right = 0
+
+# basic lover behaviour
+sub basicLover
+	# compute normalized speed value for frontFrox
+	call math.muldiv(normalizedSpeed, MAX_SPEED, frontProx, MAX_PROX)
+	if prox[7] > MAX_PROX or prox[0] > MAX_PROX then
+		callsub stop
+	else
+		speed.right = MAX_SPEED - normalizedSpeed
+		speed.left = MAX_SPEED - normalizedSpeed
+	end
+	
+# advanced lover behaviour
+sub advancedLover
+	proxRight = (prox[0] + 3*prox[1] + prox[2])/4
+	proxLeft = (prox[7] + 3*prox[6] + prox[5])/4
+	
+	if proxRight > proxLeft then
+		call math.muldiv(normalizedSpeed, MAX_SPEED, proxRight, MAX_PROX)
+		speed.right = normalizedSpeed
+	   	speed.left = MAX_SPEED - normalizedSpeed
+	else 
+		call math.muldiv(normalizedSpeed, MAX_SPEED, proxLeft, MAX_PROX)
+		speed.right = MAX_SPEED - normalizedSpeed
+	   	speed.left = normalizedSpeed 
+	end
+
+# explorer behaviour
+sub explorer	
+	proxRight = (4*prox[0] + 2*prox[1] + prox[2])/7
+	proxLeft = (4*prox[7] + 2*prox[6] + prox[5])/7
+
+	if proxRight > proxLeft then
+		call math.muldiv(normalizedSpeed, MAX_SPEED, proxRight, MAX_PROX)
+	   	speed.right = MAX_SPEED + normalizedSpeed
+	   	speed.left = MAX_SPEED - normalizedSpeed
+	else
+		call math.muldiv(normalizedSpeed, MAX_SPEED, proxLeft, MAX_PROX)
+		speed.right = MAX_SPEED - normalizedSpeed
+		speed.left = MAX_SPEED + normalizedSpeed
+	end
+
+
+# check if the color red is found
+sub isColor
+	for i in 14:41 do
+		if (cam.red[i]>=useRGBColor[0] - EPS and cam.red[i]&lt;=useRGBColor[0] + EPS) and (cam.green[i]>=useRGBColor[1] - EPS and cam.green[i]&lt;=useRGBColor[1] + EPS) and (cam.blue[i]>=useRGBColor[2] - EPS and cam.blue[i]&lt;=useRGBColor[2] + EPS)
+		then
+			foundColor = TRUE
+		else
+			foundColor = FALSE
+		end
+	end
+	
+	
+# check if red is in the front
+sub isRedInFront
+	if (cam.red[29]>=RED[0] - EPS and cam.red[29]&lt;=RED[0] + EPS) 
+		then
+			redInFront = TRUE
+		end
+
+# turn to red
+sub turnToRed
+	callsub isRedInFront
+	if redInFront==FALSE then
+		speed.left = -MAX_SPEED
+		speed.right = MAX_SPEED
+	else
+		callsub stop
+		STATE = STATE_RED_FRONT
+	end
+
+
+# switch states in pahse become a master
+sub switchStates
+	if PHASE==PHASE_BECOME_MASTER then
+		if STATE==STATE_ADVLOVER then
+			STATE = STATE_EXPLORER
+		else
+			STATE = STATE_ADVLOVER
+		end
+	end
+	
+# a timer function
+sub timer
+	if timerValue > TIMER_LIMIT + backoff then
+		timerValue = 0
+		backoff = random
+		callsub switchStates
+	end
+	timerValue++
+	
+# check if the epuck is "front blocked" in a corner
+sub checkIfBlocked
+	if prox[7] > MAX_PROX or prox[0] > MAX_PROX then
+		frontBlocked++
+	else
+		frontBlocked = 0
+	end
+	
+	if frontBlocked > 40 then
+		STATE = STATE_ADVLOVER
+		frontBlocked = 0
+	end
+	
+sub moveBackwards
+	speed.left =-MAX_SPEED
+	speed.right =-MAX_SPEED
+			
+# handle sensors values
+onevent ir_sensors
+	callsub timer
+	callsub checkIfBlocked
+	callsub rand
+	
+	# Phase: Become a master and control the other epucks!
+	if PHASE == PHASE_BECOME_MASTER then
+		# send a master alive message
+		if STATE==STATE_MASTER then
+			if ImTheMaster==FALSE then
+				emit masterAlive id
+				ImTheMaster = TRUE
+				# go to the next phase
+				PHASE = PHASE_FIND_DOOR
+			end
+			
+		end
+		
+		if foundColor==FALSE then
+			redInFront = FALSE
+		end
+		
+		if foundColor==TRUE and STATE!=STATE_FREE then
+			STATE = STATE_FOUND_RED
+			callsub stop
+		end
+		
+		# free yourself!
+		if  STATE==STATE_FREE then
+			backoff = random
+			callsub explorer
+		end
+		
+		# if the red pylon if found then rotate
+		# towards the red pylon
+		if STATE==STATE_FOUND_RED then
+			callsub turnToRed
+		end
+		
+		# if the epuck is in frond of the red pylon then apply basic lover
+		if STATE==STATE_RED_FRONT then
+			callsub basicLover
+			if speed.left==0 and speed.right==0 then
+				STATE = STATE_MASTER
+			end
+		end
+		useRGBColor = RED
+		callsub isColor
+	end	
+	
+	#Phase: find the blue doors!
+	if PHASE==PHASE_FIND_DOOR then
+		if STATE==STATE_MASTER then
+			# move backwards such that the blue doors are visible
+			if  prox[7] &lt; 10 and prox[0] &lt; 10 then
+				callsub stop
+				emit mySlavesFindTheDoor
+				STATE = STATE_CONTROL
+			else
+				callsub moveBackwards
+			end
+		end
+		
+		if STATE==STATE_FIND_DOOR then
+			#TODO
+			callsub stop
+		end		
+	end
+
+# master sends a master alive message to its slaves!
+onevent masterAlive
+	if id!=args[0] then
+		PHASE = PHASE_FIND_DOOR
+		callsub stop
+	end
+
+onevent mySlavesFindTheDoor
+	STATE = STATE_FIND_DOOR</node>
+
+
+<!--node e-puck 2-->
+<node nodeId="2" name="e-puck 2">var proxLeft
+var proxRight
+var normalizedSpeed
+var timerValue = 0
+var rand
+
+var STATE = STATE_FREE
+var PHASE = PHASE_BECOME_MASTER
+
+var foundColor = FALSE
+var redInFront = FALSE
+var i = 0
+var frontProx = 0
+var frontBlocked = FALSE
+var RED[3] = [77,20,15]#RGB
+var BLUE[3] = [0,38,61]
+var useRGBColor[3]
+
+var ImTheMaster = FALSE
+
+var random = 0
+var backoff
+
+sub rand
+	call math.rand(random)
+	if random &lt; 0 then
+		random *= -1
+	end
+	call math.muldiv(random,100,random,MAX_RAND)
+	
+
+sub stop
+	speed.left = 0
+	speed.right = 0
+
+# basic lover behaviour
+sub basicLover
+	# compute normalized speed value for frontFrox
+	call math.muldiv(normalizedSpeed, MAX_SPEED, frontProx, MAX_PROX)
+	if prox[7] > MAX_PROX or prox[0] > MAX_PROX then
+		callsub stop
+	else
+		speed.right = MAX_SPEED - normalizedSpeed
+		speed.left = MAX_SPEED - normalizedSpeed
+	end
+	
+# advanced lover behaviour
+sub advancedLover
+	proxRight = (prox[0] + 3*prox[1] + prox[2])/4
+	proxLeft = (prox[7] + 3*prox[6] + prox[5])/4
+	
+	if proxRight > proxLeft then
+		call math.muldiv(normalizedSpeed, MAX_SPEED, proxRight, MAX_PROX)
+		speed.right = normalizedSpeed
+	   	speed.left = MAX_SPEED - normalizedSpeed
+	else 
+		call math.muldiv(normalizedSpeed, MAX_SPEED, proxLeft, MAX_PROX)
+		speed.right = MAX_SPEED - normalizedSpeed
+	   	speed.left = normalizedSpeed 
+	end
+
+# explorer behaviour
+sub explorer	
+	proxRight = (4*prox[0] + 2*prox[1] + prox[2])/7
+	proxLeft = (4*prox[7] + 2*prox[6] + prox[5])/7
+
+	if proxRight > proxLeft then
+		call math.muldiv(normalizedSpeed, MAX_SPEED, proxRight, MAX_PROX)
+	   	speed.right = MAX_SPEED + normalizedSpeed
+	   	speed.left = MAX_SPEED - normalizedSpeed
+	else
+		call math.muldiv(normalizedSpeed, MAX_SPEED, proxLeft, MAX_PROX)
+		speed.right = MAX_SPEED - normalizedSpeed
+		speed.left = MAX_SPEED + normalizedSpeed
+	end
+
+
+# check if the color red is found
+sub isColor
+	for i in 14:41 do
+		if (cam.red[i]>=useRGBColor[0] - EPS and cam.red[i]&lt;=useRGBColor[0] + EPS) and (cam.green[i]>=useRGBColor[1] - EPS and cam.green[i]&lt;=useRGBColor[1] + EPS) and (cam.blue[i]>=useRGBColor[2] - EPS and cam.blue[i]&lt;=useRGBColor[2] + EPS)
+		then
+			foundColor = TRUE
+		else
+			foundColor = FALSE
+		end
+	end
+	
+	
+# check if red is in the front
+sub isRedInFront
+	if (cam.red[29]>=RED[0] - EPS and cam.red[29]&lt;=RED[0] + EPS) 
+		then
+			redInFront = TRUE
+		end
+
+# turn to red
+sub turnToRed
+	callsub isRedInFront
+	if redInFront==FALSE then
+		speed.left = -MAX_SPEED
+		speed.right = MAX_SPEED
+	else
+		callsub stop
+		STATE = STATE_RED_FRONT
+	end
+
+
+# switch states in pahse become a master
+sub switchStates
+	if PHASE==PHASE_BECOME_MASTER then
+		if STATE==STATE_ADVLOVER then
+			STATE = STATE_EXPLORER
+		else
+			STATE = STATE_ADVLOVER
+		end
+	end
+	
+# a timer function
+sub timer
+	if timerValue > TIMER_LIMIT + backoff then
+		timerValue = 0
+		backoff = random
+		callsub switchStates
+	end
+	timerValue++
+	
+# check if the epuck is "front blocked" in a corner
+sub checkIfBlocked
+	if prox[7] > MAX_PROX or prox[0] > MAX_PROX then
+		frontBlocked++
+	else
+		frontBlocked = 0
+	end
+	
+	if frontBlocked > 40 then
+		STATE = STATE_ADVLOVER
+		frontBlocked = 0
+	end
+	
+sub moveBackwards
+	speed.left =-MAX_SPEED
+	speed.right =-MAX_SPEED
+			
+# handle sensors values
+onevent ir_sensors
+	callsub timer
+	callsub checkIfBlocked
+	callsub rand
+	
+	# Phase: Become a master and control the other epucks!
+	if PHASE == PHASE_BECOME_MASTER then
+		# send a master alive message
+		if STATE==STATE_MASTER then
+			if ImTheMaster==FALSE then
+				emit masterAlive id
+				ImTheMaster = TRUE
+				# go to the next phase
+				PHASE = PHASE_FIND_DOOR
+			end
+			
+		end
+		
+		if foundColor==FALSE then
+			redInFront = FALSE
+		end
+		
+		if foundColor==TRUE and STATE!=STATE_FREE then
+			STATE = STATE_FOUND_RED
+			callsub stop
+		end
+		
+		# free yourself!
+		if  STATE==STATE_FREE then
+			backoff = random
+			callsub explorer
+		end
+		
+		# if the red pylon if found then rotate
+		# towards the red pylon
+		if STATE==STATE_FOUND_RED then
+			callsub turnToRed
+		end
+		
+		# if the epuck is in frond of the red pylon then apply basic lover
+		if STATE==STATE_RED_FRONT then
+			callsub basicLover
+			if speed.left==0 and speed.right==0 then
+				STATE = STATE_MASTER
+			end
+		end
+		useRGBColor = RED
+		callsub isColor
+	end	
+	
+	#Phase: find the blue doors!
+	if PHASE==PHASE_FIND_DOOR then
+		if STATE==STATE_MASTER then
+			# move backwards such that the blue doors are visible
+			if  prox[7] &lt; 10 and prox[0] &lt; 10 then
+				callsub stop
+				emit mySlavesFindTheDoor
+				STATE = STATE_CONTROL
+			else
+				callsub moveBackwards
+			end
+		end
+		
+		if STATE==STATE_FIND_DOOR then
+			#TODO
+			callsub stop
+		end		
+	end
+
+# master sends a master alive message to its slaves!
+onevent masterAlive
+	if id!=args[0] then
+		PHASE = PHASE_FIND_DOOR
+		callsub stop
+	end
+
+onevent mySlavesFindTheDoor
+	STATE = STATE_FIND_DOOR</node>
+
+
+<!--node e-puck 3-->
+<node nodeId="3" name="e-puck 3">var proxLeft
+var proxRight
+var normalizedSpeed
+var timerValue = 0
+var rand
+
+var STATE = STATE_FREE
+var PHASE = PHASE_BECOME_MASTER
+
+var foundColor = FALSE
+var redInFront = FALSE
+var i = 0
+var frontProx = 0
+var frontBlocked = FALSE
+var RED[3] = [77,20,15]#RGB
+var BLUE[3] = [0,38,61]
+var useRGBColor[3]
+
+var ImTheMaster = FALSE
+
+var random = 0
+var backoff
+
+sub rand
+	call math.rand(random)
+	if random &lt; 0 then
+		random *= -1
+	end
+	call math.muldiv(random,100,random,MAX_RAND)
+	
+
+sub stop
+	speed.left = 0
+	speed.right = 0
+
+# basic lover behaviour
+sub basicLover
+	# compute normalized speed value for frontFrox
+	call math.muldiv(normalizedSpeed, MAX_SPEED, frontProx, MAX_PROX)
+	if prox[7] > MAX_PROX or prox[0] > MAX_PROX then
+		callsub stop
+	else
+		speed.right = MAX_SPEED - normalizedSpeed
+		speed.left = MAX_SPEED - normalizedSpeed
+	end
+	
+# advanced lover behaviour
+sub advancedLover
+	proxRight = (prox[0] + 3*prox[1] + prox[2])/4
+	proxLeft = (prox[7] + 3*prox[6] + prox[5])/4
+	
+	if proxRight > proxLeft then
+		call math.muldiv(normalizedSpeed, MAX_SPEED, proxRight, MAX_PROX)
+		speed.right = normalizedSpeed
+	   	speed.left = MAX_SPEED - normalizedSpeed
+	else 
+		call math.muldiv(normalizedSpeed, MAX_SPEED, proxLeft, MAX_PROX)
+		speed.right = MAX_SPEED - normalizedSpeed
+	   	speed.left = normalizedSpeed 
+	end
+
+# explorer behaviour
+sub explorer	
+	proxRight = (4*prox[0] + 2*prox[1] + prox[2])/7
+	proxLeft = (4*prox[7] + 2*prox[6] + prox[5])/7
+
+	if proxRight > proxLeft then
+		call math.muldiv(normalizedSpeed, MAX_SPEED, proxRight, MAX_PROX)
+	   	speed.right = MAX_SPEED + normalizedSpeed
+	   	speed.left = MAX_SPEED - normalizedSpeed
+	else
+		call math.muldiv(normalizedSpeed, MAX_SPEED, proxLeft, MAX_PROX)
+		speed.right = MAX_SPEED - normalizedSpeed
+		speed.left = MAX_SPEED + normalizedSpeed
+	end
+
+
+# check if the color red is found
+sub isColor
+	for i in 14:41 do
+		if (cam.red[i]>=useRGBColor[0] - EPS and cam.red[i]&lt;=useRGBColor[0] + EPS) and (cam.green[i]>=useRGBColor[1] - EPS and cam.green[i]&lt;=useRGBColor[1] + EPS) and (cam.blue[i]>=useRGBColor[2] - EPS and cam.blue[i]&lt;=useRGBColor[2] + EPS)
+		then
+			foundColor = TRUE
+		else
+			foundColor = FALSE
+		end
+	end
+	
+	
+# check if red is in the front
+sub isRedInFront
+	if (cam.red[29]>=RED[0] - EPS and cam.red[29]&lt;=RED[0] + EPS) 
+		then
+			redInFront = TRUE
+		end
+
+# turn to red
+sub turnToRed
+	callsub isRedInFront
+	if redInFront==FALSE then
+		speed.left = -MAX_SPEED
+		speed.right = MAX_SPEED
+	else
+		callsub stop
+		STATE = STATE_RED_FRONT
+	end
+
+
+# switch states in pahse become a master
+sub switchStates
+	if PHASE==PHASE_BECOME_MASTER then
+		if STATE==STATE_ADVLOVER then
+			STATE = STATE_EXPLORER
+		else
+			STATE = STATE_ADVLOVER
+		end
+	end
+	
+# a timer function
+sub timer
+	if timerValue > TIMER_LIMIT + backoff then
+		timerValue = 0
+		backoff = random
+		callsub switchStates
+	end
+	timerValue++
+	
+# check if the epuck is "front blocked" in a corner
+sub checkIfBlocked
+	if prox[7] > MAX_PROX or prox[0] > MAX_PROX then
+		frontBlocked++
+	else
+		frontBlocked = 0
+	end
+	
+	if frontBlocked > 40 then
+		STATE = STATE_ADVLOVER
+		frontBlocked = 0
+	end
+	
+sub moveBackwards
+	speed.left =-MAX_SPEED
+	speed.right =-MAX_SPEED
+			
+# handle sensors values
+onevent ir_sensors
+	callsub timer
+	callsub checkIfBlocked
+	callsub rand
+	
+	# Phase: Become a master and control the other epucks!
+	if PHASE == PHASE_BECOME_MASTER then
+		# send a master alive message
+		if STATE==STATE_MASTER then
+			if ImTheMaster==FALSE then
+				emit masterAlive id
+				ImTheMaster = TRUE
+				# go to the next phase
+				PHASE = PHASE_FIND_DOOR
+			end
+			
+		end
+		
+		if foundColor==FALSE then
+			redInFront = FALSE
+		end
+		
+		if foundColor==TRUE and STATE!=STATE_FREE then
+			STATE = STATE_FOUND_RED
+			callsub stop
+		end
+		
+		# free yourself!
+		if  STATE==STATE_FREE then
+			backoff = random
+			callsub explorer
+		end
+		
+		# if the red pylon if found then rotate
+		# towards the red pylon
+		if STATE==STATE_FOUND_RED then
+			callsub turnToRed
+		end
+		
+		# if the epuck is in frond of the red pylon then apply basic lover
+		if STATE==STATE_RED_FRONT then
+			callsub basicLover
+			if speed.left==0 and speed.right==0 then
+				STATE = STATE_MASTER
+			end
+		end
+		useRGBColor = RED
+		callsub isColor
+	end	
+	
+	#Phase: find the blue doors!
+	if PHASE==PHASE_FIND_DOOR then
+		if STATE==STATE_MASTER then
+			# move backwards such that the blue doors are visible
+			if  prox[7] &lt; 10 and prox[0] &lt; 10 then
+				callsub stop
+				emit mySlavesFindTheDoor
+				STATE = STATE_CONTROL
+			else
+				callsub moveBackwards
+			end
+		end
+		
+		if STATE==STATE_FIND_DOOR then
+			#TODO
+			callsub stop
+		end		
+	end
+
+# master sends a master alive message to its slaves!
+onevent masterAlive
+	if id!=args[0] then
+		PHASE = PHASE_FIND_DOOR
+		callsub stop
+	end
+
+onevent mySlavesFindTheDoor
+	STATE = STATE_FIND_DOOR</node>
+
+
+<!--node e-puck 4-->
+<node nodeId="4" name="e-puck 4">var proxLeft
+var proxRight
+var normalizedSpeed
+var timerValue = 0
+var rand
+
+var STATE = STATE_FREE
+var PHASE = PHASE_BECOME_MASTER
+
+var foundColor = FALSE
+var redInFront = FALSE
+var i = 0
+var frontProx = 0
+var frontBlocked = FALSE
+var RED[3] = [77,20,15]#RGB
+var BLUE[3] = [0,38,61]
+var useRGBColor[3]
+
+var ImTheMaster = FALSE
+
+var random = 0
+var backoff
+
+sub rand
+	call math.rand(random)
+	if random &lt; 0 then
+		random *= -1
+	end
+	call math.muldiv(random,100,random,MAX_RAND)
+	
+
+sub stop
+	speed.left = 0
+	speed.right = 0
+
+# basic lover behaviour
+sub basicLover
+	# compute normalized speed value for frontFrox
+	call math.muldiv(normalizedSpeed, MAX_SPEED, frontProx, MAX_PROX)
+	if prox[7] > MAX_PROX or prox[0] > MAX_PROX then
+		callsub stop
+	else
+		speed.right = MAX_SPEED - normalizedSpeed
+		speed.left = MAX_SPEED - normalizedSpeed
+	end
+	
+# advanced lover behaviour
+sub advancedLover
+	proxRight = (prox[0] + 3*prox[1] + prox[2])/4
+	proxLeft = (prox[7] + 3*prox[6] + prox[5])/4
+	
+	if proxRight > proxLeft then
+		call math.muldiv(normalizedSpeed, MAX_SPEED, proxRight, MAX_PROX)
+		speed.right = normalizedSpeed
+	   	speed.left = MAX_SPEED - normalizedSpeed
+	else 
+		call math.muldiv(normalizedSpeed, MAX_SPEED, proxLeft, MAX_PROX)
+		speed.right = MAX_SPEED - normalizedSpeed
+	   	speed.left = normalizedSpeed 
+	end
+
+# explorer behaviour
+sub explorer	
+	proxRight = (4*prox[0] + 2*prox[1] + prox[2])/7
+	proxLeft = (4*prox[7] + 2*prox[6] + prox[5])/7
+
+	if proxRight > proxLeft then
+		call math.muldiv(normalizedSpeed, MAX_SPEED, proxRight, MAX_PROX)
+	   	speed.right = MAX_SPEED + normalizedSpeed
+	   	speed.left = MAX_SPEED - normalizedSpeed
+	else
+		call math.muldiv(normalizedSpeed, MAX_SPEED, proxLeft, MAX_PROX)
+		speed.right = MAX_SPEED - normalizedSpeed
+		speed.left = MAX_SPEED + normalizedSpeed
+	end
+
+
+# check if the color red is found
+sub isColor
+	for i in 14:41 do
+		if (cam.red[i]>=useRGBColor[0] - EPS and cam.red[i]&lt;=useRGBColor[0] + EPS) and (cam.green[i]>=useRGBColor[1] - EPS and cam.green[i]&lt;=useRGBColor[1] + EPS) and (cam.blue[i]>=useRGBColor[2] - EPS and cam.blue[i]&lt;=useRGBColor[2] + EPS)
+		then
+			foundColor = TRUE
+		else
+			foundColor = FALSE
+		end
+	end
+	
+	
+# check if red is in the front
+sub isRedInFront
+	if (cam.red[29]>=RED[0] - EPS and cam.red[29]&lt;=RED[0] + EPS) 
+		then
+			redInFront = TRUE
+		end
+
+# turn to red
+sub turnToRed
+	callsub isRedInFront
+	if redInFront==FALSE then
+		speed.left = -MAX_SPEED
+		speed.right = MAX_SPEED
+	else
+		callsub stop
+		STATE = STATE_RED_FRONT
+	end
+
+
+# switch states in pahse become a master
+sub switchStates
+	if PHASE==PHASE_BECOME_MASTER then
+		if STATE==STATE_ADVLOVER then
+			STATE = STATE_EXPLORER
+		else
+			STATE = STATE_ADVLOVER
+		end
+	end
+	
+# a timer function
+sub timer
+	if timerValue > TIMER_LIMIT + backoff then
+		timerValue = 0
+		backoff = random
+		callsub switchStates
+	end
+	timerValue++
+	
+# check if the epuck is "front blocked" in a corner
+sub checkIfBlocked
+	if prox[7] > MAX_PROX or prox[0] > MAX_PROX then
+		frontBlocked++
+	else
+		frontBlocked = 0
+	end
+	
+	if frontBlocked > 40 then
+		STATE = STATE_ADVLOVER
+		frontBlocked = 0
+	end
+	
+sub moveBackwards
+	speed.left =-MAX_SPEED
+	speed.right =-MAX_SPEED
+			
+# handle sensors values
+onevent ir_sensors
+	callsub timer
+	callsub checkIfBlocked
+	callsub rand
+	
+	# Phase: Become a master and control the other epucks!
+	if PHASE == PHASE_BECOME_MASTER then
+		# send a master alive message
+		if STATE==STATE_MASTER then
+			if ImTheMaster==FALSE then
+				emit masterAlive id
+				ImTheMaster = TRUE
+				# go to the next phase
+				PHASE = PHASE_FIND_DOOR
+			end
+			
+		end
+		
+		if foundColor==FALSE then
+			redInFront = FALSE
+		end
+		
+		if foundColor==TRUE and STATE!=STATE_FREE then
+			STATE = STATE_FOUND_RED
+			callsub stop
+		end
+		
+		# free yourself!
+		if  STATE==STATE_FREE then
+			backoff = random
+			callsub explorer
+		end
+		
+		# if the red pylon if found then rotate
+		# towards the red pylon
+		if STATE==STATE_FOUND_RED then
+			callsub turnToRed
+		end
+		
+		# if the epuck is in frond of the red pylon then apply basic lover
+		if STATE==STATE_RED_FRONT then
+			callsub basicLover
+			if speed.left==0 and speed.right==0 then
+				STATE = STATE_MASTER
+			end
+		end
+		useRGBColor = RED
+		callsub isColor
+	end	
+	
+	#Phase: find the blue doors!
+	if PHASE==PHASE_FIND_DOOR then
+		if STATE==STATE_MASTER then
+			# move backwards such that the blue doors are visible
+			if  prox[7] &lt; 10 and prox[0] &lt; 10 then
+				callsub stop
+				emit mySlavesFindTheDoor
+				STATE = STATE_CONTROL
+			else
+				callsub moveBackwards
+			end
+		end
+		
+		if STATE==STATE_FIND_DOOR then
+			#TODO
+			callsub stop
+		end		
+	end
+
+# master sends a master alive message to its slaves!
+onevent masterAlive
+	if id!=args[0] then
+		PHASE = PHASE_FIND_DOOR
+		callsub stop
+	end
+
+onevent mySlavesFindTheDoor
+	STATE = STATE_FIND_DOOR</node>
+
+
+</network>

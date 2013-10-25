@@ -1,0 +1,203 @@
+<!DOCTYPE aesl-source>
+<network>
+
+
+<!--list of global events-->
+<event size="1" name="timerEvent"/>
+<event size="1" name="aliveMessage"/>
+
+
+<!--list of constants-->
+<constant value="500" name="LIMIT"/>
+<constant value="1" name="ONE"/>
+<constant value="10" name="MAX"/>
+<constant value="1000" name="REFRESH_LIMIT"/>
+
+
+<!--show keywords state-->
+<keywords flag="true"/>
+
+
+<!--node e-puck 1-->
+<node nodeId="1" name="e-puck 1">
+
+var counter[2]
+var epuckList[MAX]
+var numOfEpucks = 0
+var k = 0
+var i = 0
+
+sub timeEvents
+	emit aliveMessage id
+
+sub refresh
+	for i in 1:MAX do
+		epuckList[i-1]=0
+	end
+
+sub calc
+	numOfEpucks = 0
+	for i in 1:MAX do
+		if epuckList[i-1]> 0 then
+			numOfEpucks++
+		end
+	end
+
+sub timer
+	if counter[0] > LIMIT then
+		counter[0] = 0
+		callsub timeEvents
+	end
+	counter[0] += 1
+	
+	if counter[1] > REFRESH_LIMIT then
+		counter[1] = 0
+		callsub refresh
+	end
+	counter[1] +=1
+		
+onevent ir_sensors
+	callsub timer
+	callsub calc
+	
+onevent aliveMessage 
+	epuckList[args[0]] = 1</node>
+
+
+<!--node e-puck 2-->
+<node nodeId="2" name="e-puck 2">
+
+var counter[2]
+var epuckList[MAX]
+var numOfEpucks = 0
+var k = 0
+var i = 0
+
+sub timeEvents
+	emit aliveMessage id
+
+sub refresh
+	for i in 1:MAX do
+		epuckList[i-1]=0
+	end
+
+sub calc
+	numOfEpucks = 0
+	for i in 1:MAX do
+		if epuckList[i-1]> 0 then
+			numOfEpucks++
+		end
+	end
+
+sub timer
+	if counter[0] > LIMIT then
+		counter[0] = 0
+		callsub timeEvents
+	end
+	counter[0] += 1
+	
+	if counter[1] > REFRESH_LIMIT then
+		counter[1] = 0
+		callsub refresh
+	end
+	counter[1] +=1
+		
+onevent ir_sensors
+	callsub timer
+	callsub calc
+	
+onevent aliveMessage 
+	epuckList[args[0]] = 1</node>
+
+
+<!--node e-puck 3-->
+<node nodeId="3" name="e-puck 3">
+
+var counter[2]
+var epuckList[MAX]
+var numOfEpucks = 0
+var k = 0
+var i = 0
+
+sub timeEvents
+	emit aliveMessage id
+
+sub refresh
+	for i in 1:MAX do
+		epuckList[i-1]=0
+	end
+
+sub calc
+	numOfEpucks = 0
+	for i in 1:MAX do
+		if epuckList[i-1]> 0 then
+			numOfEpucks++
+		end
+	end
+
+sub timer
+	if counter[0] > LIMIT then
+		counter[0] = 0
+		callsub timeEvents
+	end
+	counter[0] += 1
+	
+	if counter[1] > REFRESH_LIMIT then
+		counter[1] = 0
+		callsub refresh
+	end
+	counter[1] +=1
+		
+onevent ir_sensors
+	callsub timer
+	callsub calc
+	
+onevent aliveMessage 
+	epuckList[args[0]] = 1</node>
+
+
+<!--node e-puck 4-->
+<node nodeId="4" name="e-puck 4">
+var counter[2]
+var epuckList[MAX]
+var numOfEpucks = 0
+var k = 0
+var i = 0
+
+sub timeEvents
+	emit aliveMessage id
+
+sub refresh
+	for i in 1:MAX do
+		epuckList[i-1]=0
+	end
+
+sub calc
+	numOfEpucks = 0
+	for i in 1:MAX do
+		if epuckList[i-1]> 0 then
+			numOfEpucks++
+		end
+	end
+
+sub timer
+	if counter[0] > LIMIT then
+		counter[0] = 0
+		callsub timeEvents
+	end
+	counter[0] += 1
+	
+	if counter[1] > REFRESH_LIMIT then
+		counter[1] = 0
+		callsub refresh
+	end
+		
+onevent ir_sensors
+	callsub timer
+	callsub calc
+	
+onevent aliveMessage 
+	epuckList[args[0]] = 1</node>
+
+
+</network>
