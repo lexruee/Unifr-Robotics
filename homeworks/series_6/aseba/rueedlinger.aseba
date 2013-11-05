@@ -1,0 +1,206 @@
+<!DOCTYPE aesl-source>
+<network>
+
+
+<!--list of global events-->
+<event size="0" name="test"/>
+<event size="1" name="test1"/>
+
+
+<!--list of constants-->
+<constant value="1500" name="MAX_PROX"/>
+<constant value="600" name="MAX_SPEED"/>
+<constant value="1" name="TRUE"/>
+<constant value="0" name="FALSE"/>
+<constant value="2" name="EPS"/>
+<constant value="500" name="TIMER_LIMIT"/>
+<constant value="0" name="S_FIND_RED"/>
+<constant value="0" name="B_EXPLORER"/>
+<constant value="1" name="B_ALOVER"/>
+<constant value="2" name="B_LOVER"/>
+<constant value="1" name="S_FOUND_RED"/>
+<constant value="3" name="B_STOP"/>
+<constant value="2" name="S_INIT"/>
+<constant value="-10" name="R"/>
+<constant value="10" name="B"/>
+
+
+<!--show keywords state-->
+<keywords flag="true"/>
+
+
+<!--node e-puck 1-->
+<node nodeId="1" name="e-puck 1"># variables
+var proxRight = 0
+var proxLeft = 0
+var frontProx = 0
+
+var normalizedSpeed
+
+# state variables
+var state = S_INIT
+var behaviour = B_EXPLORER
+var frontBlocked = FALSE
+var timerValue = 0
+var foundColor = FALSE
+
+# colors
+var RED[4] = [77,20,15,R]#RGB
+var BLUE[4] = [0,38,61,B]
+var useRGBColor[4] = RED
+# temporary variable
+var i = 0
+
+var backoff = id*10 + 1
+
+# procedures
+sub stop
+	speed.left = 0
+	speed.right = 0
+
+# check if the epuck is "front blocked" in a corner
+sub setFrontBlocked
+	if prox[7] > MAX_PROX or prox[0] > MAX_PROX then
+		frontBlocked++
+	else
+		frontBlocked = 0
+	end
+	
+# check if the color useRGBColor is found
+sub isColorFound
+	for i in 14:41 do
+		if (cam.red[i]>=useRGBColor[0] - EPS and cam.red[i]&lt;=useRGBColor[0] + EPS) and (cam.green[i]>=useRGBColor[1] - EPS and cam.green[i]&lt;=useRGBColor[1] + EPS) and (cam.blue[i]>=useRGBColor[2] - EPS and cam.blue[i]&lt;=useRGBColor[2] + EPS)
+		then
+			foundColor = useRGBColor[3]
+		else
+			foundColor = FALSE
+		end
+	end
+	
+# behaviours
+# basic lover behaviour
+sub basicLover
+	# compute normalized speed value for frontFrox
+	call math.muldiv(normalizedSpeed, MAX_SPEED, frontProx, MAX_PROX)
+	if prox[7] > MAX_PROX or prox[0] > MAX_PROX then
+		callsub stop
+	else
+		speed.right = MAX_SPEED - normalizedSpeed
+		speed.left = MAX_SPEED - normalizedSpeed
+	end
+	
+# advanced lover behaviour
+sub advancedLover
+	proxRight = (prox[0] + 3*prox[1] + prox[2])/4
+	proxLeft = (prox[7] + 3*prox[6] + prox[5])/4
+	
+	if proxRight > proxLeft then
+		call math.muldiv(normalizedSpeed, MAX_SPEED, proxRight, MAX_PROX)
+		speed.right = normalizedSpeed
+	   	speed.left = MAX_SPEED - normalizedSpeed
+	else 
+		call math.muldiv(normalizedSpeed, MAX_SPEED, proxLeft, MAX_PROX)
+		speed.right = MAX_SPEED - normalizedSpeed
+	   	speed.left = normalizedSpeed 
+	end
+
+# explorer behaviour
+sub explorer	
+	proxRight = (4*prox[0] + 2*prox[1] + prox[2])/7
+	proxLeft = (4*prox[7] + 2*prox[6] + prox[5])/7
+
+	if proxRight > proxLeft then
+		call math.muldiv(normalizedSpeed, MAX_SPEED, proxRight, MAX_PROX)
+	   	speed.right = MAX_SPEED + normalizedSpeed
+	   	speed.left = MAX_SPEED - normalizedSpeed
+	else
+		call math.muldiv(normalizedSpeed, MAX_SPEED, proxLeft, MAX_PROX)
+		speed.right = MAX_SPEED - normalizedSpeed
+		speed.left = MAX_SPEED + normalizedSpeed
+	end
+	
+# start timer
+sub startTimer
+	timerValue++
+	
+# reset timer	
+sub resetTimer
+	if timerValue > TIMER_LIMIT then
+		timerValue = 0
+	end
+
+sub solveFrontBlock
+	if frontBlocked>40 then
+		callsub advancedLover
+		behaviour = B_ALOVER
+	end
+	
+sub switchBehaviour
+	if behaviour==B_ALOVER then
+		behaviour = B_EXPLORER
+	else
+		behaviour = B_ALOVER
+	end
+
+# handle sensors values
+onevent ir_sensors
+	callsub setFrontBlocked
+	callsub isColorFound
+	callsub startTimer
+	
+	if behaviour==B_EXPLORER then
+		callsub explorer
+	elseif behaviour==B_ALOVER then
+		callsub advancedLover
+	elseif  behaviour==B_LOVER then
+		callsub basicLover
+	else
+		callsub stop
+	end
+	
+	if state==S_INIT then
+		behaviour = B_EXPLORER
+		if timerValue > TIMER_LIMIT then
+			state = S_FIND_RED
+		end
+	end
+	if state==S_FIND_RED then
+		callsub solveFrontBlock
+		useRGBColor = RED
+		if foundColor==R then
+			behaviour = B_STOP
+			state = S_FOUND_RED
+		end
+		if timerValue > TIMER_LIMIT then
+			callsub switchBehaviour
+		end
+	end
+	if state==S_FOUND_RED then
+		behaviour = B_LOVER
+		if foundColor!=R then
+			state = S_FIND_RED
+			behaviour = B_STOP
+		end
+	end
+	callsub resetTimer</node>
+
+
+<!--node e-puck 2-->
+<node nodeId="2" name="e-puck 2">
+emit test1 id
+
+</node>
+
+
+<!--node e-puck 3-->
+<node nodeId="3" name="e-puck 3">var okay = 0
+
+onevent test1
+	okay = args[0]</node>
+
+
+<!--node e-puck 4-->
+<node nodeId="4" name="e-puck 4"></node>
+
+
+</network>

@@ -1,0 +1,58 @@
+<!DOCTYPE aseba-playground>
+<!--created by thomas rouvinez, 18. september 10, 2013, thomas.rouvinez@unifr.ch-->
+
+<aseba-playground>
+
+	<!--def. colors-->
+	<color name="wall" r="0.9" g="0.9" b="0.9"/>
+	<color name="red" r="0.77" g="0.2" b="0.15"/>
+	<color name="blue" r="0" g="0.38" b="0.61"/>
+	
+	<!--init. world-->
+	<world w="98" h="98" color="wall"/>
+
+	<!--walls vertical -->
+	<wall x="100" y="20" l1="40" l2="2" h="8" color="wall"/>
+	<wall x="59" y="25" l1="2" l2="10" h="8" color="wall"/>
+	<wall x="59" y="45" l1="2" l2="10" h="8" color="wall"/>
+	<wall x="50" y="49" l1="20" l2="2" h="8" color="wall"/>
+	<wall x="41" y="55" l1="2" l2="10" h="8" color="wall"/>
+	<wall x="41" y="100" l1="2" l2="28" h="8" color="wall"/>
+	
+	<!--def. doors-->
+	<door closedX="59" closedY="35" openedX="59" openedY="45" l1="1.8" l2="10" h="7.8" moveDuration = "1" name="door2" color="blue"/>
+	<door closedX="41" closedY="65" openedX="41" openedY="76" l1="1.8" l2="10" h="7.8" moveDuration = "1" name="door1" color="blue"/>
+	/>
+	
+	<!-- Energy feeders -->
+	<feeder x="97" y="10"/>
+	<feeder x="97" y="70"/>
+	
+	<!--def. trigger 1-->
+	<area name="Trigger1">
+		<point x="7" y="-1"/>
+		<point x="-14" y="-1"/>
+		<point x="-14" y="-7"/>
+		<point x="7" y="-7"/>
+	</area>
+	
+	<activation x="75" y="96" l1="4" l2="4" area="Trigger1" door="door2"/>
+	<activation x="75" y="96" l1="4" l2="4" area="Trigger1" door="door1"/>
+	
+	<!--def. trigger 2-->
+	<area name="Trigger2">
+		<point x="7" y="7"/>
+		<point x="1" y="7"/>
+		<point x="1" y="-7"/>
+		<point x="7" y="-7"/>
+	</area>
+	
+	<activation x="2" y="50" l1="4" l2="4" area="Trigger2" door="door2"/>
+	<activation x="2" y="50" l1="4" l2="4" area="Trigger2" door="door1"/>
+	
+	<!--e-puck init. position -->
+	<e-puck x="5" y="5"/>
+	<e-puck x="5" y="15"/>
+	<e-puck x="15" y="5"/>
+	<e-puck x="15" y="15"/>
+</aseba-playground>
